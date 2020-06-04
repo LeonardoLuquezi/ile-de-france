@@ -5,10 +5,10 @@ install:
   - choco install adoptopenjdk8
   - choco install maven
 
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda env create -f environment.yml
-  - conda activate ile-de-france
+  - miniconda3 config --set always_yes yes --set changeps1 no
+  - miniconda3 update -q conda
+  - miniconda3 env create -f environment.yml
+  - miniconda3 activate ile-de-france
 
 script:
   - java -version
