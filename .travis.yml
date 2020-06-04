@@ -1,14 +1,14 @@
 os: windows
 language: shell
 install:
-  - choco install miniconda3
+  - choco install miniconda3 --params="'/AddToPath:1'"
   - choco install adoptopenjdk8
   - choco install maven
 
-  - miniconda3 config --set always_yes yes --set changeps1 no
-  - miniconda3 update -q conda
-  - miniconda3 env create -f environment.yml
-  - miniconda3 activate ile-de-france
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda env create -f environment.yml
+  - conda activate ile-de-france
 
 script:
   - java -version
