@@ -24,7 +24,7 @@ def execute(context):
         "INSEE_COM": "commune_id"
     })
 
-    df_iris.crs = dict(init = "EPSG:2154")
+    df_iris.crs = "EPSG:2154"
 
     df_iris["iris_id"] = df_iris["iris_id"].astype("category")
     df_iris["commune_id"] = df_iris["commune_id"].astype("category")
@@ -35,7 +35,7 @@ def execute(context):
     requested_iris = set(df_codes["iris_id"].unique())
     merged_iris = set(df_iris["iris_id"].unique())
 
-    if len(requested_iris) != len(merged_iris):
+    if requested_iris != merged_iris:
         raise RuntimeError("Some IRIS are missing: %s" % (requested_iris - merged_iris,))
 
     return df_iris

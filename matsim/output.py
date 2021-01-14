@@ -6,6 +6,10 @@ def configure(context):
     context.stage("matsim.runtime.eqasim")
 
     context.config("output_path")
+    context.config("output_prefix", "ile_de_france_")
+    context.config("write_jar", True)
+
+    context.stage("documentation.meta_output")
 
 def execute(context):
     config_path = "%s/%s" % (
@@ -14,20 +18,21 @@ def execute(context):
     )
 
     for name in [
-        "ile_de_france_households.xml.gz",
-        "ile_de_france_population.xml.gz",
-        "ile_de_france_facilities.xml.gz",
-        "ile_de_france_network.xml.gz",
-        "ile_de_france_transit_schedule.xml.gz",
-        "ile_de_france_transit_vehicles.xml.gz",
-        "ile_de_france_config.xml"
+        "%shouseholds.xml.gz" % context.config("output_prefix"),
+        "%spopulation.xml.gz" % context.config("output_prefix"),
+        "%sfacilities.xml.gz" % context.config("output_prefix"),
+        "%snetwork.xml.gz" % context.config("output_prefix"),
+        "%stransit_schedule.xml.gz" % context.config("output_prefix"),
+        "%stransit_vehicles.xml.gz" % context.config("output_prefix"),
+        "%sconfig.xml" % context.config("output_prefix")
     ]:
         shutil.copy(
             "%s/%s" % (context.path("matsim.simulation.prepare"), name),
             "%s/%s" % (context.config("output_path"), name)
         )
 
-    shutil.copy(
-        "%s/%s" % (context.path("matsim.runtime.eqasim"), context.stage("matsim.runtime.eqasim")),
-        context.config("output_path")
-    )
+    if context.config("write_jar"):
+        shutil.copy(
+            "%s/%s" % (context.path("matsim.runtime.eqasim"), context.stage("matsim.runtime.eqasim")),
+            "%s/%srun.jar" % (context.config("output_path"), context.config("output_prefix"))
+        )

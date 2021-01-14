@@ -44,8 +44,8 @@ def execute(context):
     data = context.stage("data")
 
     cases = [
-        dict(commune = 75106, title = "16th Arrondissement"),
-        dict(commune = 94002, title = "Alfortville")
+        dict(commune = 75113, title = "13th Arrondissement"),
+        dict(commune = 94028, title = "Alfortville"),
     ]
 
     plt.figure(figsize = plotting.WIDE_FIGSIZE)
@@ -70,9 +70,9 @@ def execute(context):
         plt.barh(locations, df_case["reference"].values, height = 0.4, label = "Census", align = "edge", linewidth = 0.5, edgecolor = "white", color = plotting.COLORS["census"])
         plt.barh(locations + 0.4, df_case["mean"].values, height = 0.4, label = "Synthetic", align = "edge", linewidth = 0.5, edgecolor = "white", color = plotting.COLORS["synthetic"])
 
-        for index, (q5, q95) in enumerate(zip(df_case["q5"].values, df_case["q95"].values)):
+        for index, (min, max) in enumerate(zip(df_case["min"].values, df_case["max"].values)):
             location = index + 0.4 + 0.2
-            plt.plot([q5, q95], [location, location], "k", linewidth = 1, label = "90% Conf.")
+            plt.plot([min, max], [location, location], "k", linewidth = 1, label = "Range")
 
         plt.gca().yaxis.set_major_locator(tck.FixedLocator(locations + 0.4))
 
@@ -81,6 +81,8 @@ def execute(context):
         else:
             plt.gca().yaxis.set_major_formatter(tck.FixedFormatter([""] * 100))
 
+        plt.gca().xaxis.set_major_formatter(tck.FuncFormatter(lambda x,p: "%dk" % (x // 1000,)))
+
         plt.grid()
         plt.gca().set_axisbelow(True)
         plt.gca().yaxis.grid(alpha = 0.0)
@@ -88,12 +90,13 @@ def execute(context):
 
         plt.xlabel("Number of persons / households")
         plt.title(case["title"])
+        #plt.ylim([len(locations) + 2.5, -0.5])
 
-        if case_index == 0:
+        if case_index == 1:
             handles, labels = plt.gca().get_legend_handles_labels()
             handles = [handles[-2], handles[-1], handles[-3]]
             labels = [labels[-2], labels[-1], labels[-3]]
-            plt.legend(handles = handles, labels = labels, loc = "best")
+            plt.legend(handles = handles, labels = labels, loc = (0.05, 0.32), framealpha = 1.0)
 
     plt.tight_layout()
     plt.savefig("%s/comparison.pdf" % (context.path(),))

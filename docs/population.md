@@ -1,14 +1,17 @@
-# How to create a scenario
+# Generating the Île-de-France population
 
-The following sections describe three steps of using the pipeline. To generate
-the synthetic population, first all necessary data must be gathered. Afterwards,
-the pipeline can be run to create a synthetic population in *CSV* and *GPKG*
-format. Optionally, the pipeline can then prepare a [MATSim](https://matsim.org/)
-simulation and run it in a third step:
+The following sections describe how to generate a synthetic population for
+Île-de-France using the pipeline. First all necessary data must be gathered.
+Afterwards, the pipeline can be run to create a synthetic population in *CSV*
+and *GPKG* format. These outputs can be used for analysis, or serve as input
+to [run a transport simulation in MATSim](simulation.md). Also, this guide
+is the basis for creating populations and simulations of other regions and
+cities such as [Toulouse](cases/toulouse.md) or [Lyon](cases/lyon.md).
+
+This guide will cover the following steps:
 
 - [Gathering the data](#section-data)
-- [Running the pipeline](#section-data)
-- *(Optional)* [Running the simulation](#section-simulation)
+- [Running the pipeline](#section-population)
 
 ## <a name="section-data"></a>Gathering the data
 
@@ -110,61 +113,24 @@ the identifiers of IRIS, municipalities, departments and regions:
 - Download the **2017** edition as a *zip* file.
 - Open the *zip* and copy the file `reference_IRIS_geo2017.xls` into `data/codes_2017`.
 
-### 9) *(Optional)* Road network (OpenStreetMap)
+### 9) Enterprise census (SIRENE)
 
-Only in case you want to run a full simulation of the scenario (rather than
-creating the synthetic population in itself), you need to download OpenStreetMap
-data. A cut-out for Île-de-France is available from Geofabrik:
+The enterprise census of France is available on data.gouv.fr:
 
-- [Île-de-France OSM](https://download.geofabrik.de/europe/france/ile-de-france.html)
-- Download *ile-de-france-latest.osm.bz2* under *Other Formats and Auxiliary Files*.
-- Put the *bz2* file (do not unpack!) into the folder `data/osm`.
+- [Enterprise census](https://www.data.gouv.fr/fr/datasets/base-sirene-des-entreprises-et-de-leurs-etablissements-siren-siret/)
+- Scroll down and click on **Sirene : Fichier StockEtablissement**. Behind the name you will see a month as the file is updated monthly.
+- In the popping up window, click on **Telecharger** to download the file (it is rather large, at least one GB)
+- Open the downloaded *zip* file and copy the file `StockEtablissement_utf8.csv` into `data/sirene`. Unpacked it has a size of around 5GB.
 
-Unfortunately, the converter ([pt2matsim](https://github.com/matsim-org/pt2matsim))
-used in the current version of the pipeline does
-not understand the *bz2* format yet (but it will in the near future when MATSim 12.0 is
-considered). For now, the file must be converted manually from *bz2* to *gzip*. To
-do so, the *gzip* and *bzip2* command line tools must be available. Then, the following
-commands comvert the file:
+### 10) Address database (BD-TOPO)
 
-- `bunzip2 ile-de-france-latest.osm.bz2`
-- `gzip ile-de-france-latest.osm`
+The French address database is available from IGN:
 
-At the end, the `ile-de-france-latest.osm.gz` should be located in the folder.
-
-### 10) *(Optional)* Public transit schedule (GTFS)
-
-Again, only if you want to run a full simulation, you need to download the
-public transit schedule. It is available from Île-de-France mobilités:
-
-- [Île-de-France GTFS](https://data.iledefrance-mobilites.fr/explore/dataset/offre-horaires-tc-gtfs-idf/information/)
-- Go to *Export*, then download the *csv* file. Open the file, for instance in Excel,
-and obtain the URL for *IDFM_gtfs*. Download the *zip* file at this address.
-- Copy the contents of the *zip* file into the folder `data/gtfs`.
-
-Note that this schedule is updated regularly and only valid for the next three
-weeks. It is therefore a bit tricky to work with it, because the schedule varies
-strongly with external factors such as the collective strike during fall 2019
-or the Covid-19 outbreak which is currently going on at the time of writing
-this documentation. Historical data sets are available from [data.gouv.fr](https://transport.data.gouv.fr/datasets/horaires-prevus-sur-les-lignes-de-transport-en-commun-dile-de-france-gtfs/) but
-we did not assess yet how long they are kept and if it is the same data set as
-the one from Île-de-France mobilités. Currently, the pipeline will examine the
-schedule provided and take the day as a reference on which *most* services are
-active. In a future version, we will require that the user explicitly defines
-this date.
-
-**Note:** In the current IDFm GTFS data (27 Apr 2020), there is a formatting error
-in `routes.txt`, which can be easily fixed. Replace the line
-
-```
-014014090:TBUS3,339,"T\\\\\\\\\","T\\\\\\\\\\\\\\\'Bus 3","",3,,0EACE3,ffffff
-```
-
-by
-
-```
-014014090:TBUS3,339,"T'Bus 3","T'Bus 3","",3,,0EACE3,ffffff
-```
+- [Address database](https://geoservices.ign.fr/documentation/diffusion/telechargement-donnees-libres.html#bd-topo)
+- After opening the link, scroll down past all the *Département X* entries until you see *BD TOPO® Adresse par territoire édition Juin 2020*
+- Click on the download link under *France métropolitaine*
+- Open the downloaded archive and copy the files `ADRESSE.*` in *shape file* format
+into `data/bdtopo`. The unpacked files have a size of around 30GB!
 
 ### Overview
 
@@ -189,22 +155,15 @@ Your folder structure should now have at least the following files:
 - `data/iris_2017/CONTOURS-IRIS.shp`
 - `data/iris_2017/CONTOURS-IRIS.shx`
 - `data/codes_2017/reference_IRIS_geo2017.xls`
-
-If you want to run the simulation, there should be also the following files:
-
-- `data/osm/ile-de-france-latest.osm.gz`
-- `data/gtfs/agency.txt`
-- `data/gtfs/calendar.txt`
-- `data/gtfs/calendar_dates.txt`
-- `data/gtfs/routes.txt`
-- `data/gtfs/stop_extensions.txt`
-- `data/gtfs/stops.txt`
-- `data/gtfs/stop_times.txt`
-- `data/gtfs/transfers.txt`
-- `data/gtfs/trips.txt`
+- `data/sirene/StockEtablissement_utf8.csv`
+- `data/bdtopo/ADRESSE.shp`
+- `data/bdtopo/ADRESSE.cpg`
+- `data/bdtopo/ADRESSE.dbf`
+- `data/bdtopo/ADRESSE.prj`
+- `data/bdtopo/ADRESSE.shx`
 
 In case you are using the regional household travel survey (EGT), the following
-files should be also in place:
+files should also be in place:
 
 - `data/egt_2010/Menages_semaine.csv`
 - `data/egt_2010/Personnes_semaine.csv`
@@ -239,8 +198,8 @@ To activate the environment, run:
 conda activate ile-de-france
 ```
 
-Now have a look at `config.yml` which is the configuration of the pipeline.
-Check out [synpp](https://github.com/eqasim-org/synpp) to get a more general
+Now have a look at `config.yml` which is the configuration of the pipeline code.
+Have a look at [synpp](https://github.com/eqasim-org/synpp) in case you want to get a more general
 understanding of what it does. For the moment, it is important to adjust
 two configuration values inside of `config.yml`:
 
@@ -269,7 +228,7 @@ To run the pipeline, call the [synpp](https://github.com/eqasim-org/synpp) runne
 python3 -m synpp
 ```
 
-It will automatically detect the `config.yml`, process all the pipeline code
+It will automatically deshptect the `config.yml`, process all the pipeline code
 and eventually create the synthetic population. You should see a couple of
 stages running one after another. Most notably, first, the pipeline will read all
 the raw data sets to filter them and put them into the correct internal formats.
@@ -288,45 +247,3 @@ of activities or transport modes for the trips.
 activities, but in the spatial *GPKG* format. Activities contain point
 geometries to indicate where they happen and the trips file contains line
 geometries to indicate origin and destination of each trip.
-
-## <a name="section-simulation">Running the simulation
-
-The pipeline can be used to generate a full runnable [MATSim](https://matsim.org/)
-scenario and run it for a couple of iterations to test it. For that, you need
-to make sure that the following tools are installed on your system (you can just
-try to run the pipeline, it will complain if this is not the case):
-
-- **Java** needs to be installed, with a minimum version of Java 8. In case
-you are not sure, you can download the open [AdoptJDK](https://adoptopenjdk.net/).
-- **Maven** needs to be installed to build the necessary Java packages for setting
-up the scenario (such as pt2matsim) and running the simulation. Maven can be
-downloaded [here](https://maven.apache.org/) if it does not already exist on
-your system.
-- **git** is used to clone the repositories containing the simulation code. In
-case you clone the pipeline repository previously, you should be all set.
-
-Then, open again `config.yml` and uncomment the `matsim.output` stage in the
-`run` section. If you call `python3 -m synpp` again, the pipeline will know
-already which stages have been running before, so it will only run additional
-stages that are needed to set up and test the simulation.
-
-After running, you should find the MATSim scenario files in the `output`
-folder:
-
-- `ile_de_france_population.xml.gz` containing the agents and their daily plans.
-- `ile_de_france_facilities.xml.gz` containing all businesses, services, etc.
-- `ile_de_france_network.xml.gz` containing the road and transit network
-- `ile_de_france_households.xml.gz` containing additional household information
-- `ile_de_france_transit_schedule.xml.gz` and `ile_de_france_transit_vehicles.xml.gz` containing public transport data
-- `ile_de_france_config.xml` containing the MATSim configuration values
-- `ile_de_france-1.0.5.jar` containing a fully packaged version of the simulation code including MATSim and all other dependencies
-
-If you want to run the simulation again (in the pipeline it is only run for
-two iterations to test that everything works), you can now call the following:
-
-```bash
-java -Xmx14G -cp ile_de_france-1.0.5.jar org.eqasim.ile_de_france.RunSimulation --config-path ile_de_france_config.xml
-```
-
-This will create a `simulation_output` folder (as defined in the `ile_de_france_config.xml`)
-where all simulation is written.

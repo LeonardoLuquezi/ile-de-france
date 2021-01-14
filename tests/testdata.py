@@ -42,6 +42,17 @@ def create(output_path):
     - 2D007, 2D008, 2D012, 2D013
     """
 
+    BPE_OBSERVATIONS = 500
+    HTS_HOUSEHOLDS = 300
+    HTS_HOUSEHOLD_MEMBERS = 3
+
+    CENSUS_HOUSEHOLDS = 300
+    CENSUS_HOUSEHOLD_MEMBERS = 3
+
+    COMMUTE_FLOW_OBSERVATIONS = 500
+    ADDRESS_OBSERVATIONS = 2000
+    SIRENE_OBSERVATIONS = 2000
+
     import geopandas as gpd
     import pandas as pd
     import shapely.geometry as geo
@@ -59,6 +70,7 @@ def create(output_path):
     anchor_y = 6861081
 
     # Define internal zoing system
+    print("Creating zoning system ...")
     df = []
 
     WITH_IRIS = set([
@@ -135,10 +147,11 @@ def create(output_path):
                         ))
 
     df = pd.DataFrame.from_records(df)
-    df = gpd.GeoDataFrame(df, crs = dict(init = "EPSG:2154"))
+    df = gpd.GeoDataFrame(df, crs = "EPSG:2154")
 
     # Dataset: IRIS zones
     # Required attributes: CODE_IRIS, INSEE_COM, geometry
+    print("Creating IRIS zones ...")
 
     df_iris = df.copy()
     df_iris = df_iris[["iris", "municipality", "geometry"]].rename(columns = dict(
@@ -150,6 +163,7 @@ def create(output_path):
 
     # Dataset: Codes
     # Required attributes: CODE_IRIS, DEPCOM, DEP, REG
+    print("Creating codes ...")
 
     df_codes = df.copy()
     df_codes = df_codes[["iris", "municipality", "department", "region"]].rename(columns = dict(
@@ -165,6 +179,7 @@ def create(output_path):
 
     # Dataset: Aggregate census
     # Required attributes: IRIS, COM, DEP, REG, P15_POP
+    print("Creating aggregate census ...")
 
     df_population = df.copy()
     df_population = df_population[["iris", "municipality", "department", "region"]].rename(columns = dict(
@@ -182,9 +197,10 @@ def create(output_path):
 
     # Dataset: BPE
     # Required attributes: DCIRIS, LAMBERT_X, LAMBERT_Y, TYPEQU, DEPCOM, DEP
+    print("Creating BPE ...")
 
     # We put enterprises at the centroid of the shapes
-    observations = 500
+    observations = BPE_OBSERVATIONS
     categories = np.array(["A", "B", "C", "D", "E", "F", "G"])
 
     df_selection = df.iloc[random.randint(0, len(df), size = observations)].copy()
@@ -217,6 +233,7 @@ def create(output_path):
 
     # Dataset: Tax data
     # Required attributes: CODGEO, D115, ..., D915
+    print("Creating FILOSOFI ...")
 
     df_income = df.drop_duplicates("municipality")[["municipality"]].rename(columns = dict(municipality = "CODGEO"))
     df_income["D115"] = 9122.0
@@ -245,6 +262,7 @@ def create(output_path):
     )
 
     # Data set: ENTD
+    print("Creating ENTD ...")
 
     data = dict(
         Q_MENAGE = [],
@@ -254,7 +272,7 @@ def create(output_path):
         K_DEPLOC = [],
     )
 
-    for household_index in range(300): # 300 households
+    for household_index in range(HTS_HOUSEHOLDS):
         household_id = household_index
 
         region = random.choice([10, 20])
@@ -278,7 +296,7 @@ def create(output_path):
             ])
         ))
 
-        for person_index in range(3):
+        for person_index in range(HTS_HOUSEHOLD_MEMBERS):
             person_id = household_id * 1000 + person_index
             studies = random.random_sample() < 0.3
 
@@ -311,7 +329,7 @@ def create(output_path):
                     IDENT_JOUR = 1, V2_MTP = mode,
                     V2_MDESDEP = work_department,
                     V2_MORIDEP = home_department,
-                    NDEP = 3, V2_MOBILREF = 1, PONDKI = 3.0
+                    NDEP = 4, V2_MOBILREF = 1, PONDKI = 3.0
                 ))
 
                 data["K_DEPLOC"].append(dict(
@@ -321,7 +339,7 @@ def create(output_path):
                     IDENT_JOUR = 1, V2_MTP = mode,
                     V2_MDESDEP = home_department,
                     V2_MORIDEP = work_department,
-                    NDEP = 3, V2_MOBILREF = 1, PONDKI = 3.0
+                    NDEP = 4, V2_MOBILREF = 1, PONDKI = 3.0
                 ))
 
                 data["K_DEPLOC"].append(dict(
@@ -331,7 +349,18 @@ def create(output_path):
                     IDENT_JOUR = 1, V2_MTP = mode,
                     V2_MDESDEP = home_department,
                     V2_MORIDEP = home_department,
-                    NDEP = 3, V2_MOBILREF = 1, PONDKI = 3.0
+                    NDEP = 4, V2_MOBILREF = 1, PONDKI = 3.0
+                ))
+
+                # Add a tail
+                data["K_DEPLOC"].append(dict(
+                    IDENT_IND = person_id, V2_MMOTIFDES = 2, V2_MMOTIFORI = 1,
+                    V2_TYPJOUR = 1, V2_MORIHDEP = "21:00:00", V2_MDESHARR = "22:00:00",
+                    V2_MDISTTOT = 3, # km
+                    IDENT_JOUR = 1, V2_MTP = mode,
+                    V2_MDESDEP = home_department,
+                    V2_MORIDEP = home_department,
+                    NDEP = 4, V2_MOBILREF = 1, PONDKI = 3.0
                 ))
 
     os.mkdir("%s/entd_2008" % output_path)
@@ -343,6 +372,7 @@ def create(output_path):
 
 
     # Data set: EGT
+    print("Creating EGT ...")
 
     data = dict(
         households = [],
@@ -350,7 +380,7 @@ def create(output_path):
         trips = []
     )
 
-    for household_index in range(300): # 300 households
+    for household_index in range(HTS_HOUSEHOLDS):
         household_id = household_index
 
         municipality = random.choice(df["municipality"].unique())
@@ -364,7 +394,7 @@ def create(output_path):
             MNP = 3, REVENU = random.randint(12)
         ))
 
-        for person_index in range(3):
+        for person_index in range(HTS_HOUSEHOLD_MEMBERS):
             person_id = household_id * 1000 + person_index
             studies = random.random_sample() < 0.3
 
@@ -416,10 +446,11 @@ def create(output_path):
     pd.DataFrame.from_records(data["trips"]).to_csv("%s/egt_2010/Deplacements_semaine.csv" % output_path, index = False, sep = ",")
 
     # Data set: Census
+    print("Creating census ...")
 
     persons = []
 
-    for household_index in range(300): # 300 households
+    for household_index in range(CENSUS_HOUSEHOLDS):
         household_id = household_index
 
         iris = df["iris"].iloc[random.randint(len(df))]
@@ -433,7 +464,7 @@ def create(output_path):
         destination_region = df[df["municipality"] == destination_municipality]["region"].values[0]
         destination_department = df[df["municipality"] == destination_municipality]["department"].values[0]
 
-        for person_index in range(3):
+        for person_index in range(CENSUS_HOUSEHOLD_MEMBERS):
             persons.append(dict(
                 CANTVILLE = "ABCE", NUMMI = household_id,
                 AGED = "%03d" % random.randint(90), COUPLE = random.choice([1, 2]),
@@ -483,9 +514,10 @@ def create(output_path):
     db.close()
 
     # Data set: commute flows
+    print("Creating commute flows ...")
 
     municipalities = df["municipality"].unique()
-    observations = 500
+    observations = COMMUTE_FLOW_OBSERVATIONS
 
     # ... work
     df_work = pd.DataFrame(dict(
@@ -523,8 +555,65 @@ def create(output_path):
         db.write(row)
     db.close()
 
+    # Data set: BD-TOPO
+    print("Creating BD-TOPO ...")
+
+    observations = ADDRESS_OBSERVATIONS
+
+    streets = np.array([
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+    ])[random.randint(0, 26, observations)]
+
+    numbers = random.randint(0, 20, observations)
+
+    x = random.random_sample(size = (observations,)) * 100
+    y = random.random_sample(size = (observations,)) * 50
+
+    df_bdtopo = gpd.GeoDataFrame({
+        "CODE_INSEE": municipalities[random.randint(0, len(municipalities), observations)],
+        "NUMERO": numbers,
+        "NOM_1": streets,
+        "geometry": [
+            geo.Point(x, y) for x, y in zip(x, y)
+        ]
+    }, crs = "EPSG:2154")
+
+    df_bdtopo["NOM_1"] = "R " + df_bdtopo["NOM_1"]
+
+    os.mkdir("%s/bdtopo" % output_path)
+    df_bdtopo.to_file("%s/bdtopo/ADRESSE.shp" % output_path)
+
+    # Data set: SIRENE
+    print("Creating SIRENE ...")
+
+    observations = SIRENE_OBSERVATIONS
+
+    streets = np.array([
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+    ])[random.randint(0, 26, observations)]
+
+    numbers = random.randint(0, 20, observations)
+
+    df_sirene = pd.DataFrame({
+        "siret": random.randint(0, 99999999, observations),
+        "libelleVoieEtablissement": streets,
+        "numeroVoieEtablissement": numbers,
+        "codeCommuneEtablissement": municipalities[random.randint(0, len(municipalities), observations)],
+        "etatAdministratifEtablissement": "A"
+    })
+
+    df_sirene["activitePrincipaleEtablissement"] = "52.1"
+    df_sirene["trancheEffectifsEtablissement"] = "03"
+    df_sirene["typeVoieEtablissement"] = "RUE"
+
+    os.mkdir("%s/sirene" % output_path)
+    df_sirene.to_csv("%s/sirene/StockEtablissement_utf8.csv" % output_path, index = False)
+
     # Data set: OSM
     # We add add a road grid of 500m
+    print("Creating OSM ...")
     import itertools
 
     osm = []
@@ -554,16 +643,16 @@ def create(output_path):
 
             node_index += 1
 
-    df_nodes = gpd.GeoDataFrame(df_nodes, crs = dict(init = "EPSG:2154"))
-    df_nodes = df_nodes.to_crs(dict(init = "EPSG:4326"))
+    df_nodes = gpd.GeoDataFrame(df_nodes, crs = "EPSG:2154")
+    df_nodes = df_nodes.to_crs("EPSG:4326")
 
     for row in df_nodes.itertuples():
-        osm.append('<node id="%d" lat="%f" lon="%f" version="3" />' % (
+        osm.append('<node id="%d" lat="%f" lon="%f" version="3" timestamp="2010-12-05T17:00:00" />' % (
             row[1], row[2].y, row[2].x
         ))
 
     for index, link in enumerate(links):
-        osm.append('<way id="%d" version="3">' % (index + 1))
+        osm.append('<way id="%d" version="3" timestamp="2010-12-05T17:00:00">' % (index + 1))
         osm.append('<nd ref="%d" />' % link[0])
         osm.append('<nd ref="%d" />' % link[1])
         osm.append('<tag k="highway" v="primary" />')
@@ -576,45 +665,52 @@ def create(output_path):
     with gzip.open("%s/osm/ile-de-france-latest.osm.gz" % output_path, "wb+") as f:
         f.write(bytes("\n".join(osm), "utf-8"))
 
+    import subprocess
+    subprocess.check_call([
+        "osmosis", "--read-xml", "%s/osm/ile-de-france-latest.osm.gz" % output_path,
+        "--write-pbf", "%s/osm/ile-de-france-latest.osm.pbf" % output_path
+    ])
+
     # Data set: GTFS
+    print("Creating GTFS ...")
 
-    os.mkdir("%s/gtfs" % output_path)
+    feed = {}
 
-    pd.DataFrame.from_records([dict(
+    feed["agency"] = pd.DataFrame.from_records([dict(
         agency_id = 1, agency_name = "eqasim", agency_timezone = "Europe/Paris",
         agency_url = "https://eqasim.org"
-    )]).to_csv("%s/gtfs/agency.txt" % output_path, index = False)
+    )])
 
-    pd.DataFrame.from_records([dict(
+    feed["calendar"] = pd.DataFrame.from_records([dict(
         service_id = 1, monday = 1, tuesday = 1, wednesday = 1,
         thursday = 1, friday = 1, saturday = 1, sunday = 1, start_date = "20100101",
         end_date = "20500101"
-    )]).to_csv("%s/gtfs/calendar.txt" % output_path, index = False)
+    )])
 
-    pd.DataFrame.from_records([dict(
+    feed["routes"] = pd.DataFrame.from_records([dict(
         route_id = 1, agency_id = 1, route_short_name = "EQ",
         route_long_name = "The eqasim train", route_desc = "",
         route_type = 2
-    )]).to_csv("%s/gtfs/routes.txt" % output_path, index = False)
+    )])
 
     stops = []
 
     df_stops = df[df["municipality"].isin(["1B019", "2D007"])].copy()
-    df_stops = df_stops.to_crs(dict(init = "EPSG:4326"))
+    df_stops = df_stops.to_crs("EPSG:4326")
 
-    pd.DataFrame.from_records([dict(
+    feed["stops"] = pd.DataFrame.from_records([dict(
         stop_id = "A", stop_code = "A", stop_name = "A",
         stop_desc = "",
         stop_lat = df_stops["geometry"].iloc[0].centroid.y,
         stop_lon = df_stops["geometry"].iloc[0].centroid.x,
-        location_type = 0, parent_station = None
+        location_type = 1, parent_station = None
     ), dict(
         stop_id = "B", stop_code = "B", stop_name = "B",
         stop_desc = "",
         stop_lat = df_stops["geometry"].iloc[1].centroid.y,
         stop_lon = df_stops["geometry"].iloc[1].centroid.x,
-        location_type = 0, parent_station = None
-    )]).to_csv("%s/gtfs/stops.txt" % output_path, index = False)
+        location_type = 1, parent_station = None
+    )])
 
     trips = []
     times = []
@@ -639,8 +735,18 @@ def create(output_path):
 
             trip_id += 1
 
-    pd.DataFrame.from_records(trips).to_csv("%s/gtfs/trips.txt" % output_path, index = False)
-    pd.DataFrame.from_records(times).to_csv("%s/gtfs/stop_times.txt" % output_path, index = False)
+    feed["trips"] = pd.DataFrame.from_records(trips)
+    feed["stop_times"] = pd.DataFrame.from_records(times)
+
+    # Transfers
+    feed["transfers"] = pd.DataFrame(dict(
+        from_stop_id = [], to_stop_id = [], transfer_type = []
+    ))
+
+    os.mkdir("%s/gtfs" % output_path)
+
+    import data.gtfs.utils
+    data.gtfs.utils.write_feed(feed, "%s/gtfs/IDFM_gtfs.zip" % output_path)
 
 if __name__ == "__main__":
     import sys
